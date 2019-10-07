@@ -6,7 +6,7 @@ const movieRouter = express.Router();
 const DATABASE = mongoose.connection.db;
 const bodyParser = require('body-parser');
 let page = 1;
-let size = 15;
+let size = 10;
 
 movieRouter.use(bodyParser.json());
 movieRouter.route('/').get((req, res) => {
@@ -16,11 +16,10 @@ movieRouter.route('/home').get(async (req, res) => {
   try {
     const p = req.query.page;
     const s = req.query.size;
-
-    if (p != '') {
+    if (p != null) {
       page = parseInt(p);
     }
-    if (s != '') {
+    if (s != null) {
       size = parseInt(s);
     }
     const result = await connection.db
@@ -39,9 +38,10 @@ movieRouter.route('/home').get(async (req, res) => {
       .skip(size * (page - 1))
       .limit(size)
       .toArray();
+    replacePoster(result);
     res.json(result);
   } catch (err) {
-    res.json({ status: 'wala' });
+    res.json({ message: 'wala' });
   }
 });
 movieRouter.route('/movie/:id').get(async (req, res, next) => {
@@ -60,9 +60,10 @@ movieRouter.route('/movie/:id').get(async (req, res, next) => {
         }
       }
     );
+    replacePoster(result);
     res.json(result);
   } catch (err) {
-    res.json({ status: 'wala' });
+    res.json({ message: 'wala' });
   }
 });
 movieRouter.route('/movie/:id/countries').get(async (req, res) => {
@@ -79,14 +80,16 @@ movieRouter.route('/movie/:id/countries').get(async (req, res) => {
             actors: 1,
             poster: 1,
             plot: 1,
-            writers: 1
+            writers: 1,
+            countries: 1
           }
         }
       )
       .toArray();
+    replacePoster(result);
     res.json(result);
   } catch (err) {
-    res.json({ status: 'wala' });
+    res.json({ message: 'wala' });
   }
 });
 movieRouter.route('/movie/:id/writers').get(async (req, res) => {
@@ -108,18 +111,19 @@ movieRouter.route('/movie/:id/writers').get(async (req, res) => {
         }
       )
       .toArray();
+    replacePoster(result);
     res.json(writers);
   } catch (err) {
-    res.json({ status: 'wala' });
+    res.json({ message: 'wala' });
   }
 });
-movieRouter.route('/writer').get(async (req, res) => {
-  console.log(req.query.writer);
+movieRouter.route('/writers').get(async (req, res) => {
   try {
+    const writer = req.query.writer;
     const movies = await connection.db
       .collection('movieDetails')
       .find(
-        { writers: req.query.writer },
+        { writers: { $regex: writer, $options: 'i' } },
         {
           projection: {
             title: 1,
@@ -133,9 +137,11 @@ movieRouter.route('/writer').get(async (req, res) => {
         }
       )
       .toArray();
+
+    replacePoster(movies);
     res.json(movies);
   } catch (err) {
-    res.json({ status: 'wala' });
+    res.json({ message: 'wala' });
   }
 });
 
@@ -157,7 +163,7 @@ movieRouter.route('/search').get(async (req, res) => {
       res.json(result);
     }
   } catch (err) {
-    res.json({ status: 'wala' });
+    res.json({ message: 'wala' });
   }
 });
 
@@ -170,31 +176,32 @@ movieRouter.route('/delete/:id').get(async (req, res) => {
       const result = await connection.db
         .collection('movieDetails')
         .deleteOne({ _id: new ObjectId(req.params.id) });
-      res.json({ status: 'success' });
+      res.json({ message: 'success' });
     }
-    res.json({ status: 'nabura na' });
+    res.json({ message: 'nabura na' });
   } catch (err) {
-    res.json({ status: 'unsuccessful' });
+    res.json({ message: 'unsuccessful' });
   }
 });
 movieRouter.route('/update/:id').post(async (req, res) => {
   try {
-    console.log(req.body, req.params.id);
-    const id = await connection.db
+    const id = req.params.id;
+    const value = await connection.db
       .collection('movieDetails')
-      .findOne({ _id: new ObjectId(req.params.id) });
-    if (id) {
+      .findOne({ _id: new ObjectId(id) });
+    if (value) {
       const result = await connection.db
         .collection('movieDetails')
-        .updateOne(
+        .findOneAndUpdate(
           { _id: new ObjectId(id) },
           { $set: req.body },
           { new: true }
         );
+      return res.json({ message: 'success' });
     }
-    res.json({ status: 'success' });
+    return res.json({ message: 'Movie with ' + id + ' not found!' });
   } catch (err) {
-    res.json({ status: 'unsuccessful' });
+    return res.json({ message: 'unsuccessful' });
   }
 });
 async function titleSearch(title) {
@@ -216,11 +223,10 @@ async function titleSearch(title) {
         }
       )
       .toArray();
-    console.log(`/${title}/i`);
-
+    replacePoster(result);
     return result;
   } catch (err) {
-    return { status: 'wala' };
+    return { message: 'wala' };
   }
 }
 async function actorSearch(actor) {
@@ -242,9 +248,10 @@ async function actorSearch(actor) {
         }
       )
       .toArray();
+    replacePoster(result);
     return result;
   } catch (err) {
-    return { status: 'wala' };
+    return { message: 'wala' };
   }
 }
 async function plotSearch(plot) {
@@ -266,14 +273,13 @@ async function plotSearch(plot) {
         }
       )
       .toArray();
+    replacePoster(result);
     return result;
   } catch (err) {
-    return { status: 'wala' };
+    return { message: 'wala' };
   }
 }
 async function searchAll(all) {
-  console.log(all);
-
   try {
     const result = await connection.db
       .collection('movieDetails')
@@ -298,9 +304,19 @@ async function searchAll(all) {
         }
       )
       .toArray();
+    replacePoster(result);
     return result;
   } catch (err) {
-    return { status: 'wala' };
+    return { message: 'wala' };
   }
+}
+
+function replacePoster(result) {
+  result.forEach(movie => {
+    if (movie.poster) {
+      movie.poster = movie.poster.replace('http', 'https');
+    }
+  });
+  return result;
 }
 module.exports = movieRouter;
