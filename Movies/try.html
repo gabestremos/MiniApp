@@ -30,11 +30,10 @@
         lock.getUserInfo(authResult.accessToken, function(error, profile) {
           if (error) {
             console.log(error);
-
             return;
           }
           console.log(authResult);
-          localStorage.setItem('accessToken', authResult.accessToken);
+          localStorage.setItem('idToken', authResult.idToken);
           localStorage.setItem('profile', JSON.stringify(profile));
         });
       });
