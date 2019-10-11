@@ -1,15 +1,31 @@
 const mongoose = require('mongoose');
-const { connection } = mongoose;
-const express = require('express');
-const ObjectId = require('mongodb').ObjectId;
-const movieRouter = express.Router();
-const replacePoster = require('../util/replacePoster');
-const bodyParser = require('body-parser');
-const checkJwt = require('../util/jwt');
-let page = 1;
-let size = 10;
 
-movieRouter.use(bodyParser.json());
+const { connection } = mongoose;
+
+const express = require('express');
+
+const { ObjectId } = require('mongodb');
+
+const movieRouter = express.Router();
+
+// const bodyParser = require('body-parser');
+
+const replacePoster = require('../util/replacePoster');
+
+const checkJwt = require('../middleware/jwt');
+
+let pageNo = 1;
+const size = 10;
+
+// movieRouter.use(bodyParser.json());
+
+movieRouter.use(function(err, req, res, next) {
+  if (err.name === 'UnauthorizedError') {
+    return res.status(401).send({ msg: 'Invalid token' });
+  }
+
+  return next(err, req, res);
+});
 movieRouter.route('/').get((req, res) => {
   res.redirect('/home');
 });
@@ -17,7 +33,7 @@ movieRouter.route('/home').get(async (req, res) => {
   try {
     const p = req.query.page;
     if (p != null) {
-      page = parseInt(p);
+      pageNo = parseInt(p);
     }
     const count = await connection.db.collection('movieDetails').count({});
     const result = await connection.db
@@ -33,7 +49,7 @@ movieRouter.route('/home').get(async (req, res) => {
           }
         }
       )
-      .skip(size * (page - 1))
+      .skip(size * (pageNo - 1))
       .limit(size)
       .toArray();
     const totalPages = Math.ceil(count / size);
@@ -43,7 +59,7 @@ movieRouter.route('/home').get(async (req, res) => {
     res.json({ message: 'wala' });
   }
 });
-movieRouter.route('/movie/:id').get(async (req, res, next) => {
+movieRouter.route('/movie/:id').get(async (req, res) => {
   try {
     const result = await connection.db
       .collection('movieDetails')
@@ -57,7 +73,8 @@ movieRouter.route('/movie/:id').get(async (req, res, next) => {
             actors: 1,
             poster: 1,
             plot: 1,
-            writers: 1
+            writers: 1,
+            genres: 1
           }
         }
       )
@@ -113,7 +130,7 @@ movieRouter.route('/movie/:id/writers').get(async (req, res) => {
         }
       )
       .toArray();
-    replacePoster(result);
+    replacePoster(writers);
     res.json(writers);
   } catch (err) {
     res.json({ message: 'wala' });
@@ -121,7 +138,7 @@ movieRouter.route('/movie/:id/writers').get(async (req, res) => {
 });
 movieRouter.route('/writers').get(async (req, res) => {
   try {
-    const writer = req.query.writer;
+    const { writer } = req.query;
     const movies = await connection.db
       .collection('movieDetails')
       .find(
@@ -146,93 +163,6 @@ movieRouter.route('/writers').get(async (req, res) => {
     res.json({ message: 'wala' });
   }
 });
-
-movieRouter.route('/search').get(async (req, res) => {
-  const { title, actor, plot, all, page } = req.query;
-
-  try {
-    if (title) {
-      if (page) {
-        const result = await searchTitle(title, page);
-        res.json(result);
-      } else {
-        const result = await searchTitle(title, 1);
-        res.json(result);
-      }
-    } else if (actor) {
-      if (page) {
-        const result = await searchActor(actor, page);
-        res.json(result);
-      } else {
-        const result = await searchActor(actor, 1);
-        res.json(result);
-      }
-    } else if (plot) {
-      if (page) {
-        const result = await searchPlot(plot, page);
-        res.json(result);
-      } else {
-        const result = await searchPlot(plot, 1);
-        res.json(result);
-      }
-    } else {
-      if (page) {
-        const result = await searchAll(all, page);
-        res.json(result);
-      } else {
-        const result = await searchAll(all, 1);
-        res.json(result);
-      }
-    }
-  } catch (err) {
-    res.json({ message: 'wala' });
-  }
-});
-
-movieRouter.route('/delete/:id').get(checkJwt, async (req, res) => {
-  try {
-    const id = await connection.db
-      .collection('movieDetails')
-      .findOne({ _id: new ObjectId(req.params.id) });
-    if (id) {
-      const result = await connection.db
-        .collection('movieDetails')
-        .deleteOne({ _id: new ObjectId(req.params.id) });
-      res.json({ message: 'success' });
-    }
-    res.json({ message: 'wala' });
-  } catch (err) {
-    res.json({ message: 'unsuccessful' });
-  }
-});
-movieRouter
-  .route('/update/:id')
-  .get(checkJwt, async (req, res) => {
-    try {
-      const id = req.params.id;
-      const result = await connection.db
-        .collection('movieDetails')
-        .findOne({ _id: new ObjectId(id) });
-      res.json(result);
-    } catch (err) {
-      res.json({ message: 'wala' });
-    }
-  })
-  .post(checkJwt, async (req, res) => {
-    try {
-      const id = req.params.id;
-      const result = await connection.db
-        .collection('movieDetails')
-        .findOneAndUpdate(
-          { _id: new ObjectId(id) },
-          { $set: req.body },
-          { new: true }
-        );
-      return res.json({ message: 'success' });
-    } catch (err) {
-      return res.json({ message: 'unsuccessful' });
-    }
-  });
 async function searchTitle(title, page) {
   try {
     const sizeCountTitle = await connection.db
@@ -360,5 +290,91 @@ async function searchAll(all, page) {
     return { message: 'wala' };
   }
 }
+movieRouter.route('/search').get(async (req, res) => {
+  const { title, actor, plot, all, page } = req.query;
+
+  try {
+    if (title) {
+      if (page) {
+        const result = await searchTitle(title, page);
+        res.json(result);
+      } else {
+        const result = await searchTitle(title, pageNo);
+        res.json(result);
+      }
+    } else if (actor) {
+      if (page) {
+        const result = await searchActor(actor, page);
+        res.json(result);
+      } else {
+        const result = await searchActor(actor, pageNo);
+        res.json(result);
+      }
+    } else if (plot) {
+      if (page) {
+        const result = await searchPlot(plot, page);
+        res.json(result);
+      } else {
+        const result = await searchPlot(plot, pageNo);
+        res.json(result);
+      }
+    } else if (all) {
+      if (page) {
+        const result = await searchAll(all, page);
+        res.json(result);
+      } else {
+        const result = await searchAll(all, pageNo);
+        res.json(result);
+      }
+    }
+  } catch (err) {
+    res.json({ message: 'wala' });
+  }
+});
+
+movieRouter.route('/delete/:id').get(checkJwt, async (req, res) => {
+  try {
+    const id = await connection.db
+      .collection('movieDetails')
+      .findOne({ _id: new ObjectId(req.params.id) });
+    if (id) {
+      const result = await connection.db
+        .collection('movieDetails')
+        .deleteOne({ _id: new ObjectId(req.params.id) });
+      res.json({ message: 'success' }, result);
+    }
+    res.json({ message: 'wala' });
+  } catch (err) {
+    res.json({ message: 'unsuccessful' });
+  }
+});
+movieRouter
+  .route('/update/:id')
+  .get(checkJwt, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const result = await connection.db
+        .collection('movieDetails')
+        .findOne({ _id: new ObjectId(id) });
+      res.json(result);
+    } catch (err) {
+      res.json({ message: 'wala' });
+    }
+  })
+  .post(checkJwt, async (req, res) => {
+    try {
+      const { id } = req.params;
+      await connection.db
+        .collection('movieDetails')
+        .findOneAndUpdate(
+          { _id: new ObjectId(id) },
+          { $set: req.body },
+          { new: true }
+        );
+      return res.json({ message: 'success' });
+    } catch (err) {
+      return res.json({ message: 'unsuccessful' });
+    }
+  });
 
 module.exports = movieRouter;
