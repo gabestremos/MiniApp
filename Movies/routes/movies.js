@@ -59,6 +59,44 @@ movieRouter.route('/home').get(async (req, res) => {
     res.json({ message: 'wala' });
   }
 });
+movieRouter.route('/movie/genres/:genre').get(async (req, res) => {
+  try {
+    const p = req.query.page;
+    const { genre } = req.params;
+    if (p) {
+      pageNo = parseInt(p);
+    }
+
+    const count = await connection.db
+      .collection('movieDetails')
+      .count({ genres: { $regex: genre, $options: 'i' } });
+    const result = await connection.db
+      .collection('movieDetails')
+      .find(
+        { genres: { $regex: genre, $options: 'i' } },
+        {
+          projection: {
+            title: 1,
+            director: 1,
+            year: 1,
+            actors: 1,
+            poster: 1,
+            plot: 1,
+            writers: 1,
+            genres: 1
+          }
+        }
+      )
+      .skip(size * (pageNo - 1))
+      .limit(10)
+      .toArray();
+    const totalPages = Math.ceil(count / size);
+    replacePoster(result);
+    res.json({ result, totalSize: count, totalPages });
+  } catch (err) {
+    res.json({ message: 'wala' });
+  }
+});
 movieRouter.route('/movie/:id').get(async (req, res) => {
   try {
     const result = await connection.db
@@ -334,16 +372,10 @@ movieRouter.route('/search').get(async (req, res) => {
 
 movieRouter.route('/delete/:id').get(checkJwt, async (req, res) => {
   try {
-    const id = await connection.db
+    await connection.db
       .collection('movieDetails')
-      .findOne({ _id: new ObjectId(req.params.id) });
-    if (id) {
-      const result = await connection.db
-        .collection('movieDetails')
-        .deleteOne({ _id: new ObjectId(req.params.id) });
-      res.json({ message: 'success' }, result);
-    }
-    res.json({ message: 'wala' });
+      .findOneAndDelete({ _id: new ObjectId(req.params.id) });
+    res.json({ message: 'success' });
   } catch (err) {
     res.json({ message: 'unsuccessful' });
   }
@@ -361,7 +393,7 @@ movieRouter
       res.json({ message: 'wala' });
     }
   })
-  .post(checkJwt, async (req, res) => {
+  .put(checkJwt, async (req, res) => {
     try {
       const { id } = req.params;
       await connection.db
