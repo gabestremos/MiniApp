@@ -83,7 +83,9 @@ movieRouter.route('/movie/genres/:genre').get(async (req, res) => {
             poster: 1,
             plot: 1,
             writers: 1,
-            genres: 1
+            genres: 1,
+            imdb: 1,
+            runtime: 1
           }
         }
       )
