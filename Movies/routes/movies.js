@@ -385,9 +385,22 @@ movieRouter
   .get(checkJwt, async (req, res) => {
     try {
       const { id } = req.params;
-      const result = await connection.db
-        .collection('movieDetails')
-        .findOne({ _id: new ObjectId(id) });
+      const result = await connection.db.collection('movieDetails').findOne(
+        { _id: new ObjectId(id) },
+        {
+          projection: {
+            title: 1,
+            director: 1,
+            year: 1,
+            actors: 1,
+            poster: 1,
+            plot: 1,
+            writers: 1,
+            imdb: 1,
+            runtime: 1
+          }
+        }
+      );
       res.json(result);
     } catch (err) {
       res.json({ message: 'wala' });
