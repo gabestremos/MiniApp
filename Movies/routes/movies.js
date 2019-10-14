@@ -85,7 +85,8 @@ movieRouter.route('/movie/genres/:genre').get(async (req, res) => {
             writers: 1,
             genres: 1,
             imdb: 1,
-            runtime: 1
+            runtime: 1,
+            rated: 1
           }
         }
       )
@@ -116,7 +117,8 @@ movieRouter.route('/movie/:id').get(async (req, res) => {
             writers: 1,
             genres: 1,
             imdb: 1,
-            runtime: 1
+            runtime: 1,
+            rated: 1
           }
         }
       )
@@ -142,7 +144,8 @@ movieRouter.route('/movie/:id/countries').get(async (req, res) => {
             poster: 1,
             plot: 1,
             writers: 1,
-            countries: 1
+            countries: 1,
+            rated: 1
           }
         }
       )
@@ -167,7 +170,8 @@ movieRouter.route('/movie/:id/writers').get(async (req, res) => {
             actors: 1,
             poster: 1,
             plot: 1,
-            writers: 1
+            writers: 1,
+            rated: 1
           }
         }
       )
@@ -193,7 +197,8 @@ movieRouter.route('/writers').get(async (req, res) => {
             actors: 1,
             poster: 1,
             plot: 1,
-            writers: 1
+            writers: 1,
+            rated: 1
           }
         }
       )
@@ -249,7 +254,8 @@ async function searchActor(actor, page) {
             director: 1,
             year: 1,
             poster: 1,
-            plot: 1
+            plot: 1,
+            rated: 1
           }
         }
       )
@@ -278,7 +284,8 @@ async function searchPlot(plot, page) {
             director: 1,
             year: 1,
             poster: 1,
-            plot: 1
+            plot: 1,
+            rated: 1
           }
         }
       )
@@ -317,7 +324,8 @@ async function searchAll(all, page) {
             director: 1,
             year: 1,
             poster: 1,
-            plot: 1
+            plot: 1,
+            rated: 1
           }
         }
       )
@@ -401,7 +409,8 @@ movieRouter
             plot: 1,
             writers: 1,
             imdb: 1,
-            runtime: 1
+            runtime: 1,
+            rated: 1
           }
         }
       );
