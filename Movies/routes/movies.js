@@ -212,9 +212,6 @@ movieRouter.route('/writers').get(async (req, res) => {
 });
 async function searchTitle(title, page) {
   try {
-    const sizeCountTitle = await connection.db
-      .collection('movieDetails')
-      .count({ title: { $regex: title, $options: 'i' } });
     const result = await connection.db
       .collection('movieDetails')
       .find(
@@ -233,6 +230,9 @@ async function searchTitle(title, page) {
       .limit(size)
       .toArray();
     replacePoster(result);
+    const sizeCountTitle = await connection.db
+      .collection('movieDetails')
+      .count({ title: { $regex: title, $options: 'i' } });
     const totalPagesTitle = Math.ceil(sizeCountTitle / size);
     return { result, sizeCountTitle, totalPagesTitle };
   } catch (err) {
@@ -241,9 +241,6 @@ async function searchTitle(title, page) {
 }
 async function searchActor(actor, page) {
   try {
-    const sizeCountActor = await connection.db
-      .collection('movieDetails')
-      .count({ actors: { $regex: actor, $options: 'i' } });
     const result = await mongoose.connection.db
       .collection('movieDetails')
       .find(
@@ -262,6 +259,9 @@ async function searchActor(actor, page) {
       .skip(size * (page - 1))
       .limit(size)
       .toArray();
+    const sizeCountActor = await connection.db
+      .collection('movieDetails')
+      .count({ actors: { $regex: actor, $options: 'i' } });
     const totalPagesActor = Math.ceil(sizeCountActor / size);
     replacePoster(result);
     return { result, sizeCountActor, totalPagesActor };
@@ -271,9 +271,6 @@ async function searchActor(actor, page) {
 }
 async function searchPlot(plot, page) {
   try {
-    const sizeCountPlot = await connection.db
-      .collection('movieDetails')
-      .count({ plot: { $regex: plot, $options: 'i' } });
     const result = await connection.db
       .collection('movieDetails')
       .find(
@@ -293,6 +290,9 @@ async function searchPlot(plot, page) {
       .limit(size)
       .toArray();
     replacePoster(result);
+    const sizeCountPlot = await connection.db
+      .collection('movieDetails')
+      .count({ plot: { $regex: plot, $options: 'i' } });
     const totalPagesSearchPlot = Math.ceil(sizeCountPlot / size);
     return { result, sizeCountPlot, totalPagesSearchPlot };
   } catch (err) {
@@ -301,13 +301,6 @@ async function searchPlot(plot, page) {
 }
 async function searchAll(all, page) {
   try {
-    const sizeCountAll = await connection.db.collection('movieDetails').count({
-      $or: [
-        { title: { $regex: all, $options: 'i' } },
-        { actors: { $regex: all, $options: 'i' } },
-        { plot: { $regex: all, $options: 'i' } }
-      ]
-    });
     const result = await connection.db
       .collection('movieDetails')
       .find(
@@ -334,6 +327,13 @@ async function searchAll(all, page) {
       .toArray();
     replacePoster(result);
 
+    const sizeCountAll = await connection.db.collection('movieDetails').count({
+      $or: [
+        { title: { $regex: all, $options: 'i' } },
+        { actors: { $regex: all, $options: 'i' } },
+        { plot: { $regex: all, $options: 'i' } }
+      ]
+    });
     const totalPagesSearcAll = Math.ceil(sizeCountAll / size);
     return { result, totalSize: sizeCountAll, totalPagesSearcAll };
   } catch (err) {
