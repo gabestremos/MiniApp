@@ -10,7 +10,7 @@ const helmet = require('helmet');
 
 const { join } = require('path');
 
-const dbConn = require('./config');
+const dbConn = require('./config/config');
 
 const movieRouter = require('./routes/movies');
 
@@ -30,10 +30,6 @@ app.use(cookieParser());
 app.use(express.static(join(__dirname, 'public')));
 
 app.use('/', movieRouter);
-
-// app.get('/', (_, res) => {
-//   res.sendFile(path.join(__dirname, 'try.html'));
-// });
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
